@@ -106,3 +106,28 @@ setup, verification, and limitations. Keep secrets in the root `.env`.
 - Rollback: revert this checkpoint to restore explicit mouth resets; previous
   character-handoff checkpoint is `37761c9`.
 - Verification result: all 18 offline tests and the workspace typecheck pass.
+
+## Checkpoint 6 — fallback visuals and stateless summary cards
+
+- Accepted Role 4's updated allowlist: any scene/location ID in Story's episodes
+  is valid even without an image. Scene/map tools now emit fallback-compatible
+  events. Scene attachments are emitted only for existing PNGs; the no-key text
+  stub follows the same rule instead of returning broken image URLs.
+- Track the episode selected by scene/map tools and the passage selected by
+  highlighting, retaining metadata across text turns and Live character handoffs.
+- end_session validates a two-sentence takeaway up to 300 characters and builds
+  an encoded STAGE_URL/card URL with sessionId, available episode/quote ids,
+  takeaway, and character. Valid episode quote/passage IDs provide a fallback;
+  absent metadata is omitted rather than invented. No lesson override is used.
+- TextReply attaches the card URL as an image; Live returns it in the tool result.
+  No shared contracts or new Brain endpoints. PNG rendering/dimensions are owned
+  by Role 4 and not verified here. Role 1 must coordinate card delivery for voice
+  calls, since VoiceControlMessage has no attachment payload.
+- Added fallback scene/map, invalid-id, URL encoding, takeaway validation, and
+  cross-turn card metadata tests. Story still contains a placeholder passage;
+  real Butler quote quality awaits Role 3's data handoff.
+- Setup: configure STAGE_URL to the publicly reachable Stage origin for Channel
+  attachments. The card renderer must tolerate omitted episode/quote parameters.
+- Rollback: revert this checkpoint to return to the mouth-event alignment commit
+  `58a8c53`. Earlier voice/character checkpoints remain independent.
+- Verification result: all 23 offline tests and the workspace typecheck pass.

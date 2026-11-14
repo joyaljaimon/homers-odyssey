@@ -73,10 +73,38 @@ Waiting on:
 
 - Role 1: actual Chert audio formats and playback/interrupt behavior.
 - Role 3: full characters, episodes, retrieval, and the 30-problem mapping table.
-- Role 4: confirmed scene/map assets and summary-card data delivery design.
+- Role 4: final image-backed asset list and deployed PNG card renderer.
 
-Scene tools require an existing scene PNG. Map display and summary-card
-attachments await handoffs. Debate orchestration follows in another checkpoint.
+Scene and map tools accept IDs present in Story's episodes. Stage renders scene
+title/summary cards or a drawn map when images are unavailable. The known map
+markers are troy, lotus-land, aeaea, sirens-isle, and ithaca; another episode
+location still renders the map without a highlighted marker. A scene produces
+an image attachment only when its PNG exists; the no-key stub follows this rule.
+
+`end_session` requires two sentences within 300 characters. It returns an image
+attachment using `STAGE_URL` (default `http://localhost:3000`):
+
+```text
+/card?sessionId=...&episode=...&quote=...&takeaway=...&character=...
+```
+
+URLSearchParams encodes all values. Episode selection follows the scene tool
+(or the first map tool if no scene was chosen), and quote selection follows the
+latest passage highlight. Text sessions retain these selections across turns;
+Live sessions retain them across character handoffs. Without a selected quote,
+Brain uses an existing passage from the episode's key quotes or passage IDs.
+Unknown/unselected episode and quote parameters are omitted, never invented;
+the card renderer must handle those omissions. Brain sends no lesson override.
+Role 4's renderer is expected to return a 1080×1350 PNG from that URL. No new
+Brain endpoint or shared contract is required.
+
+Text replies deliver the URL through the existing attachments array. Live tool
+responses include the card URL for Gemini, but the current voice socket has no
+attachment message to Channel. Voice-to-iMessage card delivery needs a handoff
+with Role 1; Brain does not send an undocumented socket payload. The current
+Story passage sample is placeholder text, so real quote evaluation awaits Role 3.
+
+Debate orchestration follows in another checkpoint.
 The prompt requests exact retrieved quotes and citations;
 output quote correctness still requires evaluation against Story's full data.
 

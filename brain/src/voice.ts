@@ -26,7 +26,7 @@ export function createVoiceHandler(connect: Connect, publish: (id: string, event
     let endTimeout: ReturnType<typeof setTimeout> | undefined;
     let pending: Buffer[] = [];
     let pendingBytes = 0;
-    const state: ToolState = { character: "athena", events: [], attachments: [], ended: false };
+    const state: ToolState = { sessionId, character: "athena", events: [], attachments: [], ended: false };
     const control = (message: VoiceControlMessage) => { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message)); };
     const output = new AudioOutput(pcm => {
       if (ws.readyState !== WebSocket.OPEN || ws.bufferedAmount > 1_000_000) throw new Error("Channel cannot keep up");

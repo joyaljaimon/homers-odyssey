@@ -75,3 +75,22 @@ test("invalid requests do not reach Gemini", async () => {
   const handle = createTextHandler(async () => assert.fail("called Gemini"));
   await assert.rejects(handle(req("", "")), /Invalid TextRequest/);
 });
+
+test("summary card retains selected episode and quote across text turns", async () => {
+  const { episodes, passages } = await import("@odyssey/story");
+  let calls = 0;
+  const handle = createTextHandler(async () => {
+    switch (calls++) {
+      case 0: return response([{ functionCall: { name: "show_scene", args: { scene_id: episodes[0].sceneId } } }]);
+      case 1: return response([{ functionCall: { name: "highlight_passage", args: { passage_ids: [passages[0].id] } } }]);
+      case 2: return text();
+      default: return response([{ functionCall: { name: "end_session", args: { takeaway: "Plan ahead. Take one step tomorrow." } } }]);
+    }
+  }, () => {});
+  await handle(req());
+  const reply = await handle(req("test", "Let's finish"));
+  assert.equal(reply.sessionEnded, true);
+  const url = new URL(reply.attachments.at(-1)!.url);
+  assert.equal(url.searchParams.get("episode"), episodes[0].id);
+  assert.equal(url.searchParams.get("quote"), passages[0].id);
+});

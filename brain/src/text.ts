@@ -6,7 +6,7 @@ import { handleStubText } from "./stub.ts";
 import { runTool, type ToolState } from "./tools.ts";
 import { declarations, systemPrompt } from "./config.ts";
 
-type Session = { contents: Content[]; character: CharacterId; updated: number };
+type Session = { contents: Content[]; character: CharacterId; updated: number; episodeId?: string; quoteId?: string };
 type Generate = (request: GenerateContentParameters) => Promise<GenerateContentResponse>;
 const TTL = 30 * 60 * 1000;
 const MAX_SESSIONS = 200;
@@ -22,7 +22,8 @@ export function createTextHandler(generate: Generate, publish = emit) {
     const previous = sessions.get(req.sessionId);
     if (!previous && sessions.size >= MAX_SESSIONS) sessions.delete(sessions.keys().next().value!);
     const contents: Content[] = [...(previous?.contents ?? []), { role: "user", parts: [{ text: req.message }] }];
-    const state: ToolState = { character: previous?.character ?? "athena", events: [], attachments: [], ended: false };
+    const state: ToolState = { sessionId: req.sessionId, episodeId: previous?.episodeId, quoteId: previous?.quoteId,
+      character: previous?.character ?? "athena", events: [], attachments: [], ended: false };
     if (!previous) state.events.push({ type: "character", character: state.character });
     let text = "";
     for (let round = 0; round < 8; round++) {
@@ -61,7 +62,7 @@ export function createTextHandler(generate: Generate, publish = emit) {
     if (!previous && !/\bAI\b/i.test(text)) text = `I'm an AI playing ${getCharacter(state.character)?.name ?? "Athena"}. ${text}`;
     // Store complete turns only. Failed requests leave history and stage unchanged.
     if (state.ended) sessions.delete(req.sessionId);
-    else sessions.set(req.sessionId, { character: state.character, contents: [...contents], updated: Date.now() });
+    else sessions.set(req.sessionId, { character: state.character, contents: [...contents], updated: Date.now(), episodeId: state.episodeId, quoteId: state.quoteId });
     // Bound history at a user-turn boundary, preserving tool call/response pairs.
     const saved = sessions.get(req.sessionId);
     if (saved && saved.contents.length > 80) {
