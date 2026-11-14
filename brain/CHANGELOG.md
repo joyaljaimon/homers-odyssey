@@ -90,3 +90,19 @@ setup, verification, and limitations. Keep secrets in the root `.env`.
   must supply the remaining guides/voices before real multi-character evaluation.
 - Rollback: revert this checkpoint to retain the Athena voice bridge from
   `35af81f`; prior text implementation is `c0434c6`.
+
+## Checkpoint 5 — confirmed stage event behavior
+
+- Recorded Role 4's handoff: no `side` selects a solo character; left/right sides
+  place the two debate characters; mouth events identify the current speaker so
+  Stage can dim the other character. Target rate remains one event per 50 ms.
+- Removed synthetic mouth-reset events on silence, interruption, and disconnect.
+  Stage closes mouths automatically after 200 ms without mouth events. This also
+  prevents an idle/reset event from selecting an old speaker in debate mode.
+  Silent PCM frames can still produce a natural level of zero during playback.
+- Checked solo greetings and handoffs omit `side`. Voice tests check no terminal
+  reset event, no interruption mouth event, and correct speaker identity after a
+  handoff. Debate orchestration remains a separate implementation task.
+- Rollback: revert this checkpoint to restore explicit mouth resets; previous
+  character-handoff checkpoint is `37761c9`.
+- Verification result: all 18 offline tests and the workspace typecheck pass.

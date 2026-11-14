@@ -15,7 +15,6 @@ export class AudioOutput {
   private chunks: Buffer[] = [];
   private bytes = 0;
   private completed = false;
-  private speaking = false;
   private timer: unknown;
   constructor(private send: (pcm: Buffer) => void, private mouth: (level: number) => void,
     private drained: () => void, private fail: () => void, private time: AudioClock = clock) {
@@ -34,8 +33,8 @@ export class AudioOutput {
     this.chunks = [];
     this.bytes = 0;
     this.completed = false;
-    this.speaking = false;
-    this.mouth(0);
+    // Stage closes the mouth after 200ms without events. Do not publish idle
+    // speaker events, which could change the active speaker during a debate.
   }
   close() { this.time.cancel(this.timer); this.clear(); }
   private tick() {
@@ -53,10 +52,8 @@ export class AudioOutput {
       }
       this.bytes -= length;
       this.send(frame);
-      this.speaking = true;
       this.mouth(mouthLevel(frame));
     } else if (!this.bytes) {
-      if (this.speaking) { this.mouth(0); this.speaking = false; }
       if (this.completed) { this.completed = false; this.drained(); }
     }
   }

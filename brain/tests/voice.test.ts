@@ -56,7 +56,8 @@ test("voice forwards PCM16 input and paces every output part with mouth events",
   f.time.tick(); f.time.tick(); f.time.tick();
   assert.deepEqual(f.channel.sent.filter(Buffer.isBuffer).map(p => p.length), [2400, 1200]);
   assert.ok(f.events.some(e => e.type === "mouth" && e.level > 0));
-  assert.deepEqual(f.events.at(-1), { type: "mouth", character: "athena", level: 0 });
+  assert.equal(f.events.filter(e => e.type === "mouth").length, 2);
+  assert.ok(f.events.filter(e => e.type === "mouth").every(e => e.character === "athena"));
   assert.ok(f.events.some(e => e.type === "caption" && e.text === "Hello"));
   f.channel.close(1000);
   assert.equal(f.closed(), 1);
@@ -70,7 +71,7 @@ test("interruptions discard pending audio and notify Channel", async () => {
   f.time.tick();
   assert.equal(f.channel.sent.filter(Buffer.isBuffer).length, 0);
   assert.ok(f.channel.sent.includes('{"type":"interrupted"}'));
-  assert.deepEqual(f.events.at(-1), { type: "mouth", character: "athena", level: 0 });
+  assert.equal(f.events.filter(e => e.type === "mouth").length, 0);
   f.channel.close(1000);
 });
 
@@ -184,6 +185,10 @@ test("character handoff opens a new voice with context and ignores stale callbac
   assert.equal(channel.sent.filter(Buffer.isBuffer).length, 0);
   assert.equal(channel.readyState, 1);
   assert.equal(replies.length, 1);
+  options[1].callbacks.onmessage({ serverContent: { modelTurn: { parts: [{ inlineData: { mimeType: "audio/pcm", data: Buffer.alloc(2400, 32).toString("base64") } }] } } } as LiveServerMessage);
+  time.tick();
+  assert.ok(events.some(e => e.type === "mouth" && e.character === "odysseus"));
+  assert.ok(events.filter(e => e.type === "character").every(e => e.side === undefined));
   channel.close(1000);
   assert.deepEqual(closes, [0, 1]);
 });

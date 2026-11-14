@@ -24,7 +24,9 @@ smoke test. These are separate text and voice session memories.
   `{"type":"interrupted"}` and `{"type":"ended"}`. Channel must clear its
   playback queue on interruption and play binary audio as it arrives.
 - `WS :8080/stage?sessionId=...`: shared stage events. Audio and mouth events
-  are paced in 50 ms frames; mouth returns to zero on interruption or completion.
+  are paced in 50 ms frames. Each mouth event identifies the speaking character.
+  Stage closes mouths after 200 ms without mouth events; Brain stops publishing
+  mouth events when audio stops, including on interruption and call termination.
 - `POST :8080/debug/emit?sessionId=...`: manually publish a stage event.
 - `GET :8080/health`: returns `ok` (process liveness, not Gemini readiness).
 
@@ -35,6 +37,15 @@ Errors close the call and release timers/upstream sockets. Channel should wait
 for socket closure and reconnect with a new call; automatic upstream resumption
 is not implemented. Outgoing `ended` means the call has finished, not a turn.
 Brain ends a tool-terminated call only after the final generated audio drains.
+
+Confirmed stage behavior from Role 4:
+
+- A `character` event without `side` selects one character in solo mode.
+- `side: "left"` and `side: "right"` place two characters in debate mode.
+- Every `mouth` event carries the speaking character; Stage dims the other
+  character in debate mode. Silence needs no explicit `level: 0` event.
+- Current solo greetings and handoffs omit `side`. Debate orchestration must
+  assign both sides before speech and keep speaker-tagged mouth events.
 
 ## Voices and handoffs
 
