@@ -39,8 +39,17 @@ Brain ends a tool-terminated call only after the final generated audio drains.
 ## Voices and handoffs
 
 Provisional assignments: Athena `Kore`, Odysseus `Charon`, Poseidon `Fenrir`,
-Circe `Aoede`. Only Athena is enabled for voice in this checkpoint. Role 3 owns
-character data and should record approved assignments in its `voice` fields.
+Circe `Aoede`. Role 3 owns character data and should record approved assignments
+in its `voice` fields. A supplied non-placeholder voice field takes precedence.
+All four prompts are prepared; only characters present in Story data can be
+selected. The current sample data contains Athena alone.
+
+`switch_character` clears old playback, notifies Channel of interruption, closes
+the old Live session, and opens a new one with the target's prompt and voice.
+Up to 4,000 characters of recent input/output transcription provide handoff
+context; this is a transcript excerpt, not a model-generated summary. It stays
+in memory and is cleared on call termination. Stale callbacks from the old Live
+session are ignored. Each new character introduces itself as an AI.
 
 The 30 prebuilt voices listed in Google's
 [voice catalog](https://aistudio.google.com/docs/speech-generation#prebuilt-voices)
@@ -56,8 +65,8 @@ Waiting on:
 - Role 4: confirmed scene/map assets and summary-card data delivery design.
 
 Scene tools require an existing scene PNG. Map display and summary-card
-attachments await handoffs. Character switching and debate voice sessions follow
-in another checkpoint. The prompt requests exact retrieved quotes and citations;
+attachments await handoffs. Debate orchestration follows in another checkpoint.
+The prompt requests exact retrieved quotes and citations;
 output quote correctness still requires evaluation against Story's full data.
 
 ## Verification and rollback

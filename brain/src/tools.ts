@@ -11,7 +11,7 @@ export type ToolState = {
   takeaway?: string;
 };
 
-export function runTool(name: string, args: Record<string, unknown>, state: ToolState): Record<string, unknown> {
+export function runTool(name: string, args: Record<string, unknown>, state: ToolState, character = getCharacter): Record<string, unknown> {
   const string = (key: string) => {
     const value = args[key];
     if (typeof value !== "string" || !value.trim()) throw new Error(`Expected ${key}`);
@@ -48,10 +48,10 @@ export function runTool(name: string, args: Record<string, unknown>, state: Tool
       }
       case "switch_character": {
         const id = string("character") as CharacterId;
-        if (!getCharacter(id)) throw new Error("Character data not available");
+        if (!["athena", "odysseus", "poseidon", "circe"].includes(id) || !character(id)) throw new Error("Character data not available");
         state.character = id;
         state.events.push({ type: "character", character: id });
-        return { character: getCharacter(id) };
+        return { character: character(id) };
       }
       case "end_session":
         state.takeaway = string("takeaway");

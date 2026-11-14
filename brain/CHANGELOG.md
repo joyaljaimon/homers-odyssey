@@ -68,3 +68,25 @@ setup, verification, and limitations. Keep secrets in the root `.env`.
   the previous text implementation. Earlier checkpoint: `c0434c6`.
 - Verification result: workspace typecheck and all 16 offline tests passed.
   No local `.env` exists, so a credentialed Gemini smoke test remains pending.
+
+## Checkpoint 4 — character prompts and Live handoffs
+
+- Prepared separate prompts for all four characters with shared grounding and AI
+  disclosure rules. Each prompt includes Role 3's guide at runtime; characters
+  absent from Story data remain unavailable rather than receiving invented guides.
+- Implemented Live character handoff: acknowledge the tool, clear old playback,
+  send interrupted, close the previous session, and connect with the new prompt
+  and voice. Incoming audio buffers during new setup under the existing limits.
+- Each upstream connection has a generation id so old audio, errors, or close
+  callbacks cannot affect the replacement. Known Story voices override Brain's
+  provisional voice map; placeholder values use the provisional selection.
+- Enabled input transcription for a bounded 4,000-character recent-conversation
+  excerpt passed to replacement sessions. This deliberately avoids an extra
+  summary-model request on the live handoff path; fuller summaries can follow
+  listening/latency evaluation. Excerpts stay in memory and clear on termination.
+- Added offline tests for context/voice transfer, stale callback isolation, and
+  missing-character rejection. All 18 tests pass; workspace typecheck passes.
+- Current handoff dependency: only Athena exists in sample character data. Role 3
+  must supply the remaining guides/voices before real multi-character evaluation.
+- Rollback: revert this checkpoint to retain the Athena voice bridge from
+  `35af81f`; prior text implementation is `c0434c6`.

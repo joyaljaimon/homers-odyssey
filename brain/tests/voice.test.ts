@@ -146,3 +146,53 @@ test("audio output bounds its queue and rejects partial PCM samples", () => {
   assert.throws(() => output.enqueue(Buffer.alloc(480002)), /overflow/);
   output.close();
 });
+
+test("character handoff opens a new voice with context and ignores stale callbacks", async () => {
+  const options: LiveConnectParameters[] = [];
+  const closes: number[] = [];
+  const replies: unknown[] = [];
+  const events: StageEvent[] = [];
+  const channel = new Channel();
+  const time = fakeClock();
+  const guide = (id: string) => ["athena", "odysseus"].includes(id)
+    ? { id: id as "athena" | "odysseus", name: id, bio: "Test guide", tone: "Test tone", speechRules: [], sampleLines: [], voice: id === "athena" ? "Kore" : "Charon" }
+    : undefined;
+  const handler = createVoiceHandler(async input => {
+    const index = options.push(input) - 1;
+    input.callbacks.onmessage({ setupComplete: {} } as LiveServerMessage);
+    return {
+      sendRealtimeInput() {}, sendClientContent() {}, sendToolResponse(value) { replies.push(value); },
+      close() { closes.push(index); input.callbacks.onclose?.({} as CloseEvent); },
+    };
+  }, (_, event) => events.push(event), time.clock, guide);
+  await handler("call", channel.socket);
+  const original = options[0].callbacks;
+  original.onmessage({ serverContent: { inputTranscription: { text: "I keep postponing studying" } } } as LiveServerMessage);
+  original.onmessage({ toolCall: { functionCalls: [{ id: "switch", name: "switch_character", args: { character: "odysseus" } }] } } as LiveServerMessage);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(options.length, 2);
+  assert.deepEqual(closes, [0]);
+  assert.match(String(options[1].config?.systemInstruction), /AI playing Odysseus/);
+  assert.match(String(options[1].config?.systemInstruction), /postponing studying/);
+  assert.deepEqual(options[1].config?.speechConfig, { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Charon" } } });
+  assert.ok(events.some(e => e.type === "character" && e.character === "odysseus"));
+  assert.equal(channel.readyState, 1);
+  original.onclose?.({} as CloseEvent);
+  original.onerror?.({} as ErrorEvent);
+  original.onmessage({ serverContent: { modelTurn: { parts: [{ inlineData: { mimeType: "audio/pcm", data: Buffer.alloc(2400).toString("base64") } }] } } } as LiveServerMessage);
+  time.tick();
+  assert.equal(channel.sent.filter(Buffer.isBuffer).length, 0);
+  assert.equal(channel.readyState, 1);
+  assert.equal(replies.length, 1);
+  channel.close(1000);
+  assert.deepEqual(closes, [0, 1]);
+});
+
+test("unavailable character handoff returns an error without closing Athena", async () => {
+  const f = fixture(); await f.handler("call", f.channel.socket);
+  f.receive({ toolCall: { functionCalls: [{ id: "missing", name: "switch_character", args: { character: "poseidon" } }] } });
+  assert.match(JSON.stringify(f.toolResponses), /Character data not available/);
+  assert.equal(f.closed(), 0);
+  assert.equal(f.channel.readyState, 1);
+  f.channel.close(1000);
+});
