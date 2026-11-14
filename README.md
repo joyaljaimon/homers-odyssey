@@ -55,3 +55,10 @@ git push --force-with-lease
 
 `contracts/types.ts` (API, socket and data shapes) and `contracts/tools.json` (Gemini tool declarations)
 are shared. Announce changes in the team chat and bump `contract version` before merging.
+
+## Working with Claude Code
+
+Open the repo in Claude Code and say which role you are ("I am role 2"). [CLAUDE.md](CLAUDE.md) points Claude to
+your playbook in [docs/roles/](docs/roles/), keeps it inside your folders, and reminds you of handoffs.
+Slash commands: `/status` (where am I, what's next), `/sync` (rebase, typecheck, push, PR), `/handoff` (draft a
+message to another role).
