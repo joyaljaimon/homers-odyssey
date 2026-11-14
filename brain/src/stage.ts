@@ -8,18 +8,24 @@ export function registerStage(sessionId: string, ws: WebSocket) {
   const set = stages.get(sessionId) ?? new Set();
   set.add(ws);
   stages.set(sessionId, set);
-  ws.on("close", () => set.delete(ws));
+  ws.on("close", () => {
+    set.delete(ws);
+    if (!set.size && stages.get(sessionId) === set) stages.delete(sessionId);
+  });
+  ws.on("error", () => set.delete(ws));
 }
 
 export function emit(sessionId: string, event: StageEvent) {
   const msg = JSON.stringify(event);
-  for (const ws of stages.get(sessionId) ?? []) ws.send(msg);
+  for (const ws of stages.get(sessionId) ?? []) {
+    if (ws.readyState === 1) ws.send(msg, err => { if (err) ws.close(); });
+  }
 }
 
 // Loudness of a PCM16 chunk scaled to 0..1, for `mouth` events.
 export function mouthLevel(pcm16: Buffer): number {
   let sum = 0;
-  const n = pcm16.length / 2;
+  const n = Math.floor(pcm16.length / 2);
   for (let i = 0; i < n; i++) {
     const s = pcm16.readInt16LE(i * 2) / 32768;
     sum += s * s;

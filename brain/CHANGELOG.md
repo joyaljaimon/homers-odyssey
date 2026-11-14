@@ -41,3 +41,30 @@ setup, verification, and limitations. Keep secrets in the root `.env`.
   remains the stub. Gemini text is enabled by `GEMINI_API_KEY`.
 - Verification result: workspace typecheck passed; all 7 offline tests passed.
   Dependencies installed successfully with no tracked lockfile change.
+
+## Checkpoint 3 — Athena Live audio bridge
+
+- Implemented a Gemini Live connection per call, waiting for `setupComplete`
+  before greeting or forwarding buffered user PCM. Uses `gemini-3.8-live` with
+  provisional Athena voice `Kore`, selected from Google's docs on 2026-11-14.
+- Shared text/voice declarations and prompt loading now live in `src/config.ts`.
+- Added 50 ms PCM playback pacing and mouth levels on the same clock. Every audio
+  part is processed; interruptions clear pending playback and send Channel the
+  shared interrupted control. Output transcription drives caption events.
+- Reused validated retrieval/highlight/scene/end tools in Live. Character handoff
+  explicitly reports unavailable in this checkpoint. Final takeaway generation
+  has a 35-second deadline; normal termination waits for audio to drain.
+- Added bounded audio queues, a setup deadline, duplicate-call rejection, and
+  cleanup for disconnects, malformed PCM, slow consumers, and late connections.
+  No-key voice retains the original silent stub; no shared interfaces changed.
+- Stage fan-out skips closed sockets and removes empty subscriber sets. Mouth
+  RMS safely ignores an incomplete trailing sample.
+- Setup, protocol, provisional voice catalog/assignments, integration limitations,
+  and handoff requests are in [README.md](./README.md).
+- Offline tests cover audio formats/pacing, interruption, tool ids, end-session
+  playback, errors, duplicate sessions, setup readiness, and queue limits. Real
+  Gemini/Chert audio and model access still require credentialed verification.
+- Rollback: revert this checkpoint's commit to restore voice stubs while retaining
+  the previous text implementation. Earlier checkpoint: `c0434c6`.
+- Verification result: workspace typecheck and all 16 offline tests passed.
+  No local `.env` exists, so a credentialed Gemini smoke test remains pending.

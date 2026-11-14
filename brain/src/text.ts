@@ -1,15 +1,10 @@
-import { readFileSync } from "node:fs";
-import { GoogleGenAI, type Content, type FunctionDeclaration, type GenerateContentParameters, type GenerateContentResponse, type Part } from "@google/genai";
+import { GoogleGenAI, type Content, type GenerateContentParameters, type GenerateContentResponse, type Part } from "@google/genai";
 import type { CharacterId, TextReply, TextRequest } from "@odyssey/contracts";
 import { getCharacter } from "@odyssey/story";
 import { emit } from "./stage.ts";
 import { handleStubText } from "./stub.ts";
 import { runTool, type ToolState } from "./tools.ts";
-
-const persona = readFileSync(new URL("./personas/athena.md", import.meta.url), "utf8");
-const declarations = JSON.parse(readFileSync(new URL("../../contracts/tools.json", import.meta.url), "utf8")).tools
-  .map(({ name, description, parameters }: { name: string; description: string; parameters: object }) =>
-    ({ name, description, parametersJsonSchema: parameters })) as FunctionDeclaration[];
+import { declarations, systemPrompt } from "./config.ts";
 
 type Session = { contents: Content[]; character: CharacterId; updated: number };
 type Generate = (request: GenerateContentParameters) => Promise<GenerateContentResponse>;
@@ -35,7 +30,7 @@ export function createTextHandler(generate: Generate, publish = emit) {
         model: process.env.GEMINI_TEXT_MODEL || "gemini-flash-latest",
         contents,
         config: {
-          systemInstruction: `${persona}\nCurrent character guide: ${JSON.stringify(getCharacter(state.character))}\n${previous ? "This is a continuing conversation." : "This is your first reply; disclose that you are an AI."}`,
+          systemInstruction: `${systemPrompt(state.character)}\n${previous ? "This is a continuing conversation." : "This is your first reply; disclose that you are an AI."}`,
           tools: [{ functionDeclarations: declarations }],
           httpOptions: { timeout: 30_000 },
         },
